@@ -60,8 +60,14 @@ client_certs/$(USER)/$(USER).crt: client_certs/$(USER)/$(USER).csr server_certs/
 		-days 365 \
 		-out client_certs/$(USER)/$(USER).crt
 
+client_certs/$(USER)/$(USER).p12: client_certs/$(USER)/$(USER).key client_certs/$(USER)/$(USER).crt
+	openssl pkcs12 -export \
+		-out client_certs/$(USER)/$(USER).p12 \
+		-inkey client_certs/$(USER)/$(USER).key \
+		-in client_certs/$(USER)/$(USER).crt
+
 .PHONY: client_certs
-client_certs: client_certs/$(USER)/$(USER).crt
+client_certs: client_certs/$(USER)/$(USER).crt client_certs/$(USER)/$(USER).p12
 
 .PHONY: all_certs
 all_certs: server_certs client_certs
@@ -75,6 +81,7 @@ user_instructions:
 .PHONY: run_caddy
 run_caddy: host_instructions all_certs user_instructions
 	docker run -p $(HTTP_PORT):80 -p $(HTTPS_PORT):443 \
+		-e SERVER_HOSTNAME=$(HOSTNAME) \
 		-e BASICAUTH_USER_HASH="$(USER) $(shell docker run --rm caddy caddy hash-password --plaintext "$(PASSWORD)")" \
 		-v "$(shell pwd)/Caddyfile:/etc/caddy/Caddyfile" \
 		-v "$(shell pwd)/server_certs:/server_certs" \
@@ -84,6 +91,7 @@ run_caddy: host_instructions all_certs user_instructions
 .PHONY: run_traefik
 run_traefik: host_instructions all_certs
 	docker run -p $(HTTP_PORT):80 -p $(HTTPS_PORT):443 \
+		-e SERVER_HOSTNAME=$(HOSTNAME) \
 		-v /var/run/docker.sock:/var/run/docker.sock:ro \
 		-v "$(shell pwd)/traefik.toml:/traefik.toml" \
 		-v "$(shell pwd)/server_certs:/server_certs" \

@@ -26,7 +26,7 @@
     }
 }
 
-client_setup.{$HOSTNAME} {
+client_setup.{$SERVER_HOSTNAME} {
     import add_basicauth
     file_server {
         root "/client_certs/{http.auth.user.id}"
@@ -34,7 +34,7 @@ client_setup.{$HOSTNAME} {
     }
 }
 
-auth_test.{$HOSTNAME} {
+auth_test.{$SERVER_HOSTNAME} {
     import client_tls
     respond "Hello {tls_client_subject! I'm {system.hostname}"
 }
