@@ -1,0 +1,40 @@
+{
+    local_certs
+    debug
+}
+
+(add_basicauth) {
+    basicauth {
+        # Replace with user:password
+        {$BASICAUTH_USER_HASH}
+    }
+}
+
+(client_tls) {
+    tls {
+        load "/server_certs"
+        client_auth {
+            mode require_and_verify
+            trusted_ca_cert_file "/server_certs/mtls_ca.crt"
+        }
+    }
+}
+
+(missing_mtls_cert) {
+    @missing_mtls_cert {
+        expression {tls_client_subject} == null
+    }
+}
+
+client_setup.{$HOSTNAME} {
+    import add_basicauth
+    file_server {
+        root "/client_certs/{http.auth.user.id}"
+        browse
+    }
+}
+
+auth_test.{$HOSTNAME} {
+    import client_tls
+    respond "Hello {tls_client_subject! I'm {system.hostname}"
+}
