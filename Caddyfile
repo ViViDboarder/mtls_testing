@@ -10,9 +10,12 @@
     }
 }
 
+(basic_tls) {
+    tls "/server_certs/mtls_server.crt" "/server_certs/mtls_server.key"
+}
+
 (client_tls) {
-    tls {
-        load "/server_certs"
+    tls "/server_certs/mtls_server.crt" "/server_certs/mtls_server.key" {
         client_auth {
             mode require_and_verify
             trusted_ca_cert_file "/server_certs/mtls_ca.crt"
@@ -27,6 +30,7 @@
 }
 
 client_setup.{$SERVER_HOSTNAME} {
+    import basic_tls
     import add_basicauth
     file_server {
         root "/client_certs/{http.auth.user.id}"
