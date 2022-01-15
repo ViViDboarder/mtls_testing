@@ -41,10 +41,8 @@ server_certs/mtls_server.crt: server_certs/mtls_server.csr server_certs/mtls_ca.
 .PHONY: server_certs
 server_certs: server_certs/mtls_server.crt
 
-client_certs/$(USER):
+client_certs/$(USER)/$(USER).key:
 	@mkdir -p client_certs/$(USER)
-
-client_certs/$(USER)/$(USER).key: client_certs/$(USER)
 	openssl genrsa -out client_certs/$(USER)/$(USER).key
 
 client_certs/$(USER)/$(USER).csr: client_certs/$(USER)/$(USER).key
@@ -80,7 +78,7 @@ user_instructions:
 
 .PHONY: run_caddy
 run_caddy: host_instructions all_certs user_instructions
-	docker run -p $(HTTP_PORT):80 -p $(HTTPS_PORT):443 \
+	docker run --rm -p $(HTTP_PORT):80 -p $(HTTPS_PORT):443 \
 		-e SERVER_HOSTNAME=$(HOSTNAME) \
 		-e BASICAUTH_USER_HASH="$(USER) $(shell docker run --rm caddy caddy hash-password --plaintext "$(PASSWORD)")" \
 		-v "$(shell pwd)/Caddyfile:/etc/caddy/Caddyfile" \
@@ -90,15 +88,19 @@ run_caddy: host_instructions all_certs user_instructions
 
 .PHONY: run_traefik
 run_traefik: host_instructions all_certs
-	docker run -p $(HTTP_PORT):80 -p $(HTTPS_PORT):443 \
+	docker run --rm -p $(HTTP_PORT):80 -p $(HTTPS_PORT):443 \
 		-e SERVER_HOSTNAME=$(HOSTNAME) \
-		-v /var/run/docker.sock:/var/run/docker.sock:ro \
-		-v "$(shell pwd)/traefik.toml:/traefik.toml" \
+		-v "/var/run/docker.sock:/var/run/docker.sock:ro" \
+		-v "$(shell pwd)/traefik.toml:/etc/traefik/traefik.toml" \
+		-v "$(shell pwd)/traefik_tls.toml:/etc/traefik/traefik_tls.toml" \
 		-v "$(shell pwd)/server_certs:/server_certs" \
 		-v "$(shell pwd)/client_certs:/client_certs" \
-		-l traefik.enable=true \
-		-l "traefik.http.routers.traefikDash.rule=Host(`auth_test.$(HOSTNAME)`) \
-		-l traefik.http.routers.traefikDash.service=api@internal \
-		-l traefik.http.routers.traefikDash.middlewares=api@internal \
-		-l traefik.http.routers.traefikDash.tls.options=client@file \
+		-l "traefik.enable=true" \
+		-l 'traefik.http.routers.traefikDash.rule=Host(`auth_test.$(HOSTNAME)`)' \
+		-l "traefik.http.routers.traefikDash.service=api@internal" \
+		-l "traefik.http.routers.traefikDash.tls.options=client@file" \
 		traefik
+
+.PHONY: clean
+clean:
+	rm -fr server_certs/ client_certs/

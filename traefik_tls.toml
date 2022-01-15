@@ -17,12 +17,21 @@
   address = ":443"
   [entrypoints.webSecure.http.tls]
 
+[tls.stores]
+  [tls.stores.default]
+    [tls.stores.default.defaultCertificate]
+      certFile = "/server_certs/mtls_server.crt"
+      keyFile = "/server_certs/mtls_server.key"
+
+[tls.options]
+  [tls.options.client]
+    [tls.options.client.clientAuth]
+      caFiles = ["/server_certs/mtls_ca.crt"]
+      clientAuthType = "RequireAndVerifyClientCert"
+
 [api]
   dashboard = true
 
 [providers.docker]
   watch = true
   exposedByDefault = false
-
-[providers.file]
-  filename = "/etc/traefik/traefik_tls.toml"

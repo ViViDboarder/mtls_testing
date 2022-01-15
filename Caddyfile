@@ -36,5 +36,5 @@ client_setup.{$SERVER_HOSTNAME} {
 
 auth_test.{$SERVER_HOSTNAME} {
     import client_tls
-    respond "Hello {tls_client_subject! I'm {system.hostname}"
+    respond "Hello {tls_client_subject}! I'm {system.hostname}"
 }
